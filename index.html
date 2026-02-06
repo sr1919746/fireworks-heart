@@ -416,13 +416,39 @@
         const bgMusic = document.getElementById('bgMusic');
         const musicControl = document.getElementById('musicControl');
         let isPlaying = false;
-        let musicUrl = localStorage.getItem('musicUrl') || '';
+        let musicUrl = '';
         let isLoading = false;
         let autoPlayAttempted = false;
         
-        // 如果已经保存了音乐链接，加载它
+        // 从URL参数或localStorage获取音乐链接
+        function getMusicUrl() {
+            // 优先从URL参数获取
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlMusic = urlParams.get('music');
+            
+            if (urlMusic) {
+                // URL参数存在，保存到localStorage作为备份
+                localStorage.setItem('musicUrl', urlMusic);
+                return urlMusic;
+            }
+            
+            // 如果URL没有，从localStorage获取
+            return localStorage.getItem('musicUrl') || '';
+        }
+        
+        // 更新URL参数（不刷新页面）
+        function updateUrlWithMusic(url) {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('music', encodeURIComponent(url));
+            window.history.replaceState({}, '', newUrl.toString());
+        }
+        
+        // 初始化音乐链接
+        musicUrl = getMusicUrl();
+        
+        // 如果已经有音乐链接，加载它
         if (musicUrl) {
-            loadMusic(musicUrl, true); // 传入true表示是自动加载
+            loadMusic(musicUrl, true);
         }
         
         // 点击控制按钮
@@ -476,11 +502,16 @@
         
         // 显示音乐输入框
         function showMusicInput() {
-            const url = prompt('请输入音乐链接 (支持MP3直链)：\n\n提示：可以使用Catbox.moe等文件托管服务\n上传音乐后获取直链', musicUrl);
+            const url = prompt('请输入音乐链接 (支持MP3直链)：\n\n提示：设置后复制浏览器地址栏的链接\n分享给其他设备即可直接播放', musicUrl);
             
             if (url && url.trim()) {
-                loadMusic(url.trim(), false);
-                localStorage.setItem('musicUrl', url.trim());
+                const newUrl = url.trim();
+                // 保存到localStorage
+                localStorage.setItem('musicUrl', newUrl);
+                // 更新URL参数
+                updateUrlWithMusic(newUrl);
+                // 加载音乐
+                loadMusic(newUrl, false);
             }
         }
         
@@ -516,6 +547,10 @@
                     alert('音乐加载失败，请检查链接是否正确\n\n提示：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问\n3. 可以尝试使用Catbox.moe托管文件');
                     musicUrl = '';
                     localStorage.removeItem('musicUrl');
+                    // 移除URL参数
+                    const newUrl = new URL(window.location.href);
+                    newUrl.searchParams.delete('music');
+                    window.history.replaceState({}, '', newUrl.toString());
                 }
             }, { once: true });
         }
