@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -61,6 +62,59 @@
             }
         }
         
+        .timer {
+            position: absolute;
+            top: 73%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0;
+            animation: fadeIn 2s 0.5s ease-in forwards;
+        }
+        
+        .timer-label {
+            font-family: 'Pacifico', cursive;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 1px;
+            margin-bottom: 0.4rem;
+            margin-top: 0.5rem;
+        }
+        
+        .timer-display {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: nowrap;
+        }
+        
+        .timer-unit {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            min-width: 55px;
+        }
+        
+        .timer-number {
+            font-family: 'Pacifico', cursive;
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 15px rgba(255, 105, 180, 0.8);
+            display: block;
+        }
+        
+        .timer-text {
+            font-family: 'Pacifico', cursive;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 0.5px;
+            margin-top: 0.2rem;
+        }
+        
         .stars {
             position: absolute;
             width: 100%;
@@ -111,9 +165,55 @@
         <p>愿所有的美好都如约而至</p>
     </div>
     
+    <div class="timer">
+        <div class="timer-label">我们在一起已经</div>
+        <div class="timer-display">
+            <div class="timer-unit">
+                <span class="timer-number" id="days">0</span>
+                <span class="timer-text">天</span>
+            </div>
+            <div class="timer-unit">
+                <span class="timer-number" id="hours">0</span>
+                <span class="timer-text">小时</span>
+            </div>
+            <div class="timer-unit">
+                <span class="timer-number" id="minutes">0</span>
+                <span class="timer-text">分钟</span>
+            </div>
+            <div class="timer-unit">
+                <span class="timer-number" id="seconds">0</span>
+                <span class="timer-text">秒</span>
+            </div>
+        </div>
+    </div>
+    
     <div class="hint">点击屏幕任意位置放烟花 ✨</div>
 
     <script>
+        // 计时器功能
+        const startDate = new Date('2024-02-07T20:00:00');
+        
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startDate;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = hours.toString().padStart(2, '0');
+            document.getElementById('minutes').textContent = minutes.toString().padStart(2, '0');
+            document.getElementById('seconds').textContent = seconds.toString().padStart(2, '0');
+        }
+        
+        // 立即更新一次
+        updateTimer();
+        // 每秒更新
+        setInterval(updateTimer, 1000);
+        
+        // 烟花代码
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         
