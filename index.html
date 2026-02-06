@@ -19,6 +19,10 @@
             background: radial-gradient(ellipse at bottom, #1a0b2e 0%, #0d0221 100%);
             font-family: 'Noto Sans SC', sans-serif;
             cursor: crosshair;
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
         }
         
         canvas {
@@ -153,6 +157,99 @@
             0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
         }
+        
+        /* 响应式设计 - 移动设备 */
+        @media (max-width: 768px) {
+            .title h1 {
+                font-size: 2.5rem;
+            }
+            
+            .title p {
+                font-size: 0.9rem;
+                letter-spacing: 1px;
+            }
+            
+            .title .names {
+                font-size: 1.3rem !important;
+            }
+            
+            .timer {
+                top: 68%;
+            }
+            
+            .timer-label {
+                font-size: 0.75rem;
+            }
+            
+            .timer-display {
+                gap: 0.5rem;
+            }
+            
+            .timer-unit {
+                padding: 0.4rem 0.6rem;
+                min-width: 45px;
+                border-radius: 6px;
+            }
+            
+            .timer-number {
+                font-size: 1.1rem;
+            }
+            
+            .timer-text {
+                font-size: 0.55rem;
+            }
+            
+            .hint {
+                font-size: 0.75rem;
+                bottom: 20px;
+            }
+        }
+        
+        /* 超小屏幕（手机竖屏）*/
+        @media (max-width: 480px) {
+            .title h1 {
+                font-size: 2rem;
+            }
+            
+            .title p {
+                font-size: 0.8rem;
+            }
+            
+            .title .names {
+                font-size: 1.1rem !important;
+            }
+            
+            .timer {
+                top: 66%;
+            }
+            
+            .timer-label {
+                font-size: 0.7rem;
+                margin-top: 0.3rem;
+            }
+            
+            .timer-display {
+                gap: 0.4rem;
+            }
+            
+            .timer-unit {
+                padding: 0.35rem 0.5rem;
+                min-width: 40px;
+            }
+            
+            .timer-number {
+                font-size: 1rem;
+            }
+            
+            .timer-text {
+                font-size: 0.5rem;
+            }
+            
+            .hint {
+                font-size: 0.7rem;
+                bottom: 15px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -161,7 +258,7 @@
     
     <div class="title">
         <h1>Love Forever</h1>
-        <p style="font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 300;">苏先生 & 梅子女士</p>
+        <p class="names" style="font-size: 1.8rem; margin-bottom: 0.5rem; font-weight: 300;">苏先生 & 梅子女士</p>
         <p>愿所有的美好都如约而至</p>
     </div>
     
