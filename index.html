@@ -417,10 +417,12 @@
         const musicControl = document.getElementById('musicControl');
         let isPlaying = false;
         let musicUrl = localStorage.getItem('musicUrl') || '';
+        let isLoading = false;
+        let autoPlayAttempted = false;
         
         // 如果已经保存了音乐链接，加载它
         if (musicUrl) {
-            loadMusic(musicUrl);
+            loadMusic(musicUrl, true); // 传入true表示是自动加载
         }
         
         // 点击控制按钮
@@ -474,35 +476,97 @@
         
         // 显示音乐输入框
         function showMusicInput() {
-            const url = prompt('请输入音乐链接 (支持MP3直链)：\n\n提示：可以使用网易云、QQ音乐等平台的直链\n或者上传到文件托管服务获取直链', musicUrl);
+            const url = prompt('请输入音乐链接 (支持MP3直链)：\n\n提示：可以使用Catbox.moe等文件托管服务\n上传音乐后获取直链', musicUrl);
             
             if (url && url.trim()) {
-                loadMusic(url.trim());
+                loadMusic(url.trim(), false);
                 localStorage.setItem('musicUrl', url.trim());
             }
         }
         
         // 加载音乐
-        function loadMusic(url) {
+        function loadMusic(url, autoLoad = false) {
             musicUrl = url;
+            isLoading = true;
             bgMusic.src = url;
             bgMusic.load();
             
-            bgMusic.addEventListener('canplay', function() {
+            // 音频可以播放时的处理
+            bgMusic.addEventListener('canplaythrough', function() {
                 console.log('音乐加载成功');
+                isLoading = false;
+                
+                // 立即尝试自动播放
+                if (autoLoad && !autoPlayAttempted) {
+                    autoPlayAttempted = true;
+                    attemptAutoPlay();
+                } else if (!autoLoad) {
+                    // 如果是手动输入链接，立即播放
+                    playMusic(false);
+                }
             }, { once: true });
             
+            // 音频加载错误处理
             bgMusic.addEventListener('error', function() {
-                alert('音乐加载失败，请检查链接是否正确\n\n提示：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问\n3. 可以尝试使用文件托管服务');
-                musicUrl = '';
-                localStorage.removeItem('musicUrl');
+                console.log('音乐加载失败');
+                isLoading = false;
+                
+                // 只在手动输入链接时才显示错误提示
+                if (!autoLoad) {
+                    alert('音乐加载失败，请检查链接是否正确\n\n提示：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问\n3. 可以尝试使用Catbox.moe托管文件');
+                    musicUrl = '';
+                    localStorage.removeItem('musicUrl');
+                }
             }, { once: true });
         }
         
+        // 尝试自动播放
+        function attemptAutoPlay() {
+            // 方法1: 直接尝试播放
+            bgMusic.play().then(() => {
+                isPlaying = true;
+                musicControl.classList.add('playing');
+                musicControl.querySelector('.music-icon').textContent = '🎶';
+                musicControl.title = '点击暂停音乐 (长按可更换)';
+                console.log('音乐自动播放成功');
+            }).catch(err => {
+                console.log('浏览器阻止了自动播放，等待用户交互');
+                // 自动播放被阻止，监听用户的第一次交互
+                setupFirstInteractionPlay();
+            });
+        }
+        
+        // 设置首次交互时自动播放
+        function setupFirstInteractionPlay() {
+            const playOnInteraction = function() {
+                if (!isPlaying && musicUrl) {
+                    playMusic(true);
+                }
+                // 移除所有监听器，只需要触发一次
+                document.removeEventListener('click', playOnInteraction);
+                document.removeEventListener('touchstart', playOnInteraction);
+                document.removeEventListener('keydown', playOnInteraction);
+            };
+            
+            // 监听各种用户交互
+            document.addEventListener('click', playOnInteraction, { once: true });
+            document.addEventListener('touchstart', playOnInteraction, { once: true });
+            document.addEventListener('keydown', playOnInteraction, { once: true });
+            
+            console.log('等待用户交互以播放音乐...');
+        }
+        
         // 播放音乐
-        function playMusic() {
+        function playMusic(isAuto = false) {
             if (!musicUrl) {
-                showMusicInput();
+                if (!isAuto) {
+                    showMusicInput();
+                }
+                return;
+            }
+            
+            if (isLoading) {
+                console.log('音乐正在加载中...');
                 return;
             }
             
@@ -511,9 +575,15 @@
                 musicControl.classList.add('playing');
                 musicControl.querySelector('.music-icon').textContent = '🎶';
                 musicControl.title = '点击暂停音乐 (长按可更换)';
+                console.log('音乐播放成功');
             }).catch(err => {
                 console.log('音乐播放失败:', err);
-                alert('音乐播放失败，请检查链接是否有效');
+                // 只在手动点击播放失败时才提示
+                if (!isAuto) {
+                    // 尝试重新加载
+                    console.log('尝试重新加载音乐...');
+                    loadMusic(musicUrl, false);
+                }
             });
         }
         
@@ -524,13 +594,6 @@
             musicControl.classList.remove('playing');
             musicControl.querySelector('.music-icon').textContent = '🎵';
             musicControl.title = '点击播放音乐 (长按可更换)';
-        }
-        
-        // 自动播放（如果已设置音乐）
-        if (musicUrl) {
-            setTimeout(() => {
-                playMusic();
-            }, 1000);
         }
         
         // 计时器功能
