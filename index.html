@@ -141,6 +141,60 @@
             50% { opacity: 1; }
         }
         
+        .music-control {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+        
+        .music-control:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+        
+        .music-control svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+            filter: drop-shadow(0 0 5px rgba(255, 105, 180, 0.8));
+        }
+        
+        .music-control.playing {
+            animation: spin 3s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .music-control {
+                top: 20px;
+                right: 20px;
+                width: 45px;
+                height: 45px;
+            }
+            
+            .music-control svg {
+                width: 20px;
+                height: 20px;
+            }
+        }
+        
         .hint {
             position: absolute;
             bottom: 30px;
@@ -156,6 +210,47 @@
         @keyframes pulse {
             0%, 100% { opacity: 0.4; }
             50% { opacity: 1; }
+        }
+        
+        /* 音乐控制按钮 */
+        .music-control {
+            position: fixed;
+            bottom: 80px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 105, 180, 0.3);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 105, 180, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 105, 180, 0.4);
+        }
+        
+        .music-control:hover {
+            background: rgba(255, 105, 180, 0.5);
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
+        }
+        
+        .music-control.playing {
+            animation: rotate 3s linear infinite;
+        }
+        
+        .music-icon {
+            font-size: 1.5rem;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         
         /* 响应式设计 - 移动设备 */
@@ -203,6 +298,17 @@
                 font-size: 0.75rem;
                 bottom: 20px;
             }
+            
+            .music-control {
+                width: 50px;
+                height: 50px;
+                bottom: 70px;
+                right: 20px;
+            }
+            
+            .music-icon {
+                font-size: 1.3rem;
+            }
         }
         
         /* 超小屏幕（手机竖屏）*/
@@ -249,6 +355,17 @@
                 font-size: 0.7rem;
                 bottom: 15px;
             }
+            
+            .music-control {
+                width: 45px;
+                height: 45px;
+                bottom: 60px;
+                right: 15px;
+            }
+            
+            .music-icon {
+                font-size: 1.2rem;
+            }
         }
     </style>
 </head>
@@ -285,8 +402,137 @@
     </div>
     
     <div class="hint">点击屏幕任意位置放烟花 ✨</div>
+    
+    <!-- 音频元素 -->
+    <audio id="bgMusic" loop></audio>
+    
+    <!-- 音乐控制按钮 -->
+    <div class="music-control" id="musicControl" title="点击设置背景音乐">
+        <span class="music-icon">🎵</span>
+    </div>
 
     <script>
+        // 音乐控制功能
+        const bgMusic = document.getElementById('bgMusic');
+        const musicControl = document.getElementById('musicControl');
+        let isPlaying = false;
+        let musicUrl = localStorage.getItem('musicUrl') || '';
+        
+        // 如果已经保存了音乐链接，加载它
+        if (musicUrl) {
+            loadMusic(musicUrl);
+        }
+        
+        // 点击控制按钮
+        musicControl.addEventListener('click', function(e) {
+            e.stopPropagation(); // 防止触发烟花
+            
+            if (!musicUrl) {
+                // 如果没有设置音乐，弹出输入框
+                showMusicInput();
+            } else if (isPlaying) {
+                // 如果正在播放，暂停
+                pauseMusic();
+            } else {
+                // 如果已暂停，播放
+                playMusic();
+            }
+        });
+        
+        // 长按按钮可以重新设置音乐链接
+        let pressTimer;
+        musicControl.addEventListener('mousedown', function(e) {
+            e.stopPropagation();
+            pressTimer = setTimeout(() => {
+                if (confirm('要重新设置背景音乐吗？')) {
+                    showMusicInput();
+                }
+            }, 1000);
+        });
+        
+        musicControl.addEventListener('mouseup', function() {
+            clearTimeout(pressTimer);
+        });
+        
+        musicControl.addEventListener('mouseleave', function() {
+            clearTimeout(pressTimer);
+        });
+        
+        // 触摸设备的长按支持
+        musicControl.addEventListener('touchstart', function(e) {
+            e.stopPropagation();
+            pressTimer = setTimeout(() => {
+                if (confirm('要重新设置背景音乐吗？')) {
+                    showMusicInput();
+                }
+            }, 1000);
+        });
+        
+        musicControl.addEventListener('touchend', function() {
+            clearTimeout(pressTimer);
+        });
+        
+        // 显示音乐输入框
+        function showMusicInput() {
+            const url = prompt('请输入音乐链接 (支持MP3直链)：\n\n提示：可以使用网易云、QQ音乐等平台的直链\n或者上传到文件托管服务获取直链', musicUrl);
+            
+            if (url && url.trim()) {
+                loadMusic(url.trim());
+                localStorage.setItem('musicUrl', url.trim());
+            }
+        }
+        
+        // 加载音乐
+        function loadMusic(url) {
+            musicUrl = url;
+            bgMusic.src = url;
+            bgMusic.load();
+            
+            bgMusic.addEventListener('canplay', function() {
+                console.log('音乐加载成功');
+            }, { once: true });
+            
+            bgMusic.addEventListener('error', function() {
+                alert('音乐加载失败，请检查链接是否正确\n\n提示：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问\n3. 可以尝试使用文件托管服务');
+                musicUrl = '';
+                localStorage.removeItem('musicUrl');
+            }, { once: true });
+        }
+        
+        // 播放音乐
+        function playMusic() {
+            if (!musicUrl) {
+                showMusicInput();
+                return;
+            }
+            
+            bgMusic.play().then(() => {
+                isPlaying = true;
+                musicControl.classList.add('playing');
+                musicControl.querySelector('.music-icon').textContent = '🎶';
+                musicControl.title = '点击暂停音乐 (长按可更换)';
+            }).catch(err => {
+                console.log('音乐播放失败:', err);
+                alert('音乐播放失败，请检查链接是否有效');
+            });
+        }
+        
+        // 暂停音乐
+        function pauseMusic() {
+            bgMusic.pause();
+            isPlaying = false;
+            musicControl.classList.remove('playing');
+            musicControl.querySelector('.music-icon').textContent = '🎵';
+            musicControl.title = '点击播放音乐 (长按可更换)';
+        }
+        
+        // 自动播放（如果已设置音乐）
+        if (musicUrl) {
+            setTimeout(() => {
+                playMusic();
+            }, 1000);
+        }
+        
         // 计时器功能
         const startDate = new Date('2024-02-07T20:00:00');
         
