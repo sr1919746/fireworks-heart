@@ -526,13 +526,11 @@
         }
         
         // 加载音乐
-        function loadMusic(url, autoLoad = false) {
+        async function loadMusic(url, autoLoad = false) {
             musicUrl = url;
             isLoading = true;
             
-            // 先测试链接是否可访问
             console.log('开始加载音乐:', url);
-            console.log('测试链接：请在新标签页中打开此链接查看是否可访问:', url);
             
             // 检查文件格式
             const isMp3 = url.toLowerCase().endsWith('.mp3');
@@ -540,48 +538,80 @@
                 console.warn('警告：链接不是.mp3格式，可能无法播放');
             }
             
-            bgMusic.src = url;
-            bgMusic.load();
-            
-            // 音频可以播放时的处理
-            bgMusic.addEventListener('canplaythrough', function() {
-                console.log('音乐加载成功');
-                isLoading = false;
+            try {
+                // 使用fetch获取音频文件
+                console.log('使用fetch下载音频...');
+                const response = await fetch(url);
                 
-                // 立即尝试自动播放
-                if (autoLoad && !autoPlayAttempted) {
-                    autoPlayAttempted = true;
-                    attemptAutoPlay();
-                } else if (!autoLoad) {
-                    // 如果是手动输入链接，立即播放
-                    playMusic(false);
+                if (!response.ok) {
+                    throw new Error(`HTTP错误! 状态: ${response.status}`);
                 }
-            }, { once: true });
-            
-            // 音频加载错误处理
-            bgMusic.addEventListener('error', function(e) {
-                console.error('音乐加载失败，错误对象:', e);
-                console.error('音频src:', bgMusic.src);
-                console.error('音频error:', bgMusic.error);
+                
+                // 将响应转换为blob
+                const blob = await response.blob();
+                console.log('音频下载完成，大小:', blob.size, 'bytes');
+                console.log('Blob类型:', blob.type);
+                
+                // 创建新的blob，确保MIME类型正确
+                const audioBlob = new Blob([blob], { type: 'audio/mpeg' });
+                
+                // 创建blob URL
+                const blobUrl = URL.createObjectURL(audioBlob);
+                console.log('创建Blob URL成功:', blobUrl);
+                
+                // 设置音频源为blob URL
+                bgMusic.src = blobUrl;
+                bgMusic.load();
+                
+                // 监听加载成功
+                bgMusic.addEventListener('canplaythrough', function() {
+                    console.log('音乐加载成功（通过Blob）');
+                    isLoading = false;
+                    
+                    // 立即尝试自动播放
+                    if (autoLoad && !autoPlayAttempted) {
+                        autoPlayAttempted = true;
+                        attemptAutoPlay();
+                    } else if (!autoLoad) {
+                        playMusic(false);
+                    }
+                }, { once: true });
+                
+                // 监听加载错误
+                bgMusic.addEventListener('error', function(e) {
+                    console.error('音频元素加载失败:', e);
+                    console.error('音频error:', bgMusic.error);
+                    isLoading = false;
+                    
+                    // 清理blob URL
+                    URL.revokeObjectURL(blobUrl);
+                    
+                    if (!autoLoad) {
+                        const errorCode = bgMusic.error ? bgMusic.error.code : 'unknown';
+                        alert('音乐播放失败\n\n错误代码: ' + errorCode + '\n\n可能的原因：\n1. 音频文件损坏\n2. 浏览器不支持该音频格式\n3. 请尝试重新上传文件到Catbox');
+                        musicUrl = '';
+                        localStorage.removeItem('musicUrl');
+                        const newUrl = new URL(window.location.href);
+                        newUrl.searchParams.delete('music');
+                        window.history.replaceState({}, '', newUrl.toString());
+                    }
+                }, { once: true });
+                
+            } catch (error) {
+                console.error('下载音频失败:', error);
                 isLoading = false;
                 
-                // 只在手动输入链接时才显示错误提示
                 if (!autoLoad) {
-                    const errorCode = bgMusic.error ? bgMusic.error.code : 'unknown';
-                    const errorMsg = bgMusic.error ? bgMusic.error.message : '未知错误';
-                    alert('音乐加载失败\n\n错误代码: ' + errorCode + '\n错误信息: ' + errorMsg + '\n\n请检查：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问（CORS）\n3. 链接是否可以直接在浏览器中打开\n4. 可以尝试使用Catbox.moe重新托管文件');
+                    alert('音乐下载失败: ' + error.message + '\n\n请检查：\n1. 网络连接是否正常\n2. Catbox链接是否有效\n3. 是否被防火墙/广告拦截器阻止\n\n建议：使用GitHub托管音乐文件更稳定');
                     musicUrl = '';
                     localStorage.removeItem('musicUrl');
-                    // 移除URL参数
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.delete('music');
                     window.history.replaceState({}, '', newUrl.toString());
                 } else {
-                    // 自动加载失败时在控制台输出详细信息
-                    console.warn('自动加载音乐失败，用户可点击音乐按钮手动播放');
-                    console.warn('音乐URL:', musicUrl);
+                    console.warn('自动加载失败，用户可手动点击音乐按钮');
                 }
-            }, { once: true });
+            }
         }
         
         // 尝试自动播放
