@@ -426,20 +426,30 @@
             const urlParams = new URLSearchParams(window.location.search);
             const urlMusic = urlParams.get('music');
             
+            console.log('URL参数中的music:', urlMusic);
+            
             if (urlMusic) {
-                // URL参数存在，保存到localStorage作为备份
-                localStorage.setItem('musicUrl', urlMusic);
-                return urlMusic;
+                // 验证URL格式
+                if (urlMusic.startsWith('http://') || urlMusic.startsWith('https://')) {
+                    // URL参数存在且格式正确，保存到localStorage作为备份
+                    localStorage.setItem('musicUrl', urlMusic);
+                    console.log('从URL参数加载音乐:', urlMusic);
+                    return urlMusic;
+                } else {
+                    console.error('URL参数格式不正确:', urlMusic);
+                }
             }
             
             // 如果URL没有，从localStorage获取
-            return localStorage.getItem('musicUrl') || '';
+            const localMusic = localStorage.getItem('musicUrl') || '';
+            console.log('从localStorage加载音乐:', localMusic);
+            return localMusic;
         }
         
         // 更新URL参数（不刷新页面）
         function updateUrlWithMusic(url) {
             const newUrl = new URL(window.location.href);
-            newUrl.searchParams.set('music', encodeURIComponent(url));
+            newUrl.searchParams.set('music', url); // searchParams.set会自动编码，不需要手动encodeURIComponent
             window.history.replaceState({}, '', newUrl.toString());
         }
         
@@ -519,6 +529,17 @@
         function loadMusic(url, autoLoad = false) {
             musicUrl = url;
             isLoading = true;
+            
+            // 先测试链接是否可访问
+            console.log('开始加载音乐:', url);
+            console.log('测试链接：请在新标签页中打开此链接查看是否可访问:', url);
+            
+            // 检查文件格式
+            const isMp3 = url.toLowerCase().endsWith('.mp3');
+            if (!isMp3 && !autoLoad) {
+                console.warn('警告：链接不是.mp3格式，可能无法播放');
+            }
+            
             bgMusic.src = url;
             bgMusic.load();
             
@@ -538,19 +559,27 @@
             }, { once: true });
             
             // 音频加载错误处理
-            bgMusic.addEventListener('error', function() {
-                console.log('音乐加载失败');
+            bgMusic.addEventListener('error', function(e) {
+                console.error('音乐加载失败，错误对象:', e);
+                console.error('音频src:', bgMusic.src);
+                console.error('音频error:', bgMusic.error);
                 isLoading = false;
                 
                 // 只在手动输入链接时才显示错误提示
                 if (!autoLoad) {
-                    alert('音乐加载失败，请检查链接是否正确\n\n提示：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问\n3. 可以尝试使用Catbox.moe托管文件');
+                    const errorCode = bgMusic.error ? bgMusic.error.code : 'unknown';
+                    const errorMsg = bgMusic.error ? bgMusic.error.message : '未知错误';
+                    alert('音乐加载失败\n\n错误代码: ' + errorCode + '\n错误信息: ' + errorMsg + '\n\n请检查：\n1. 链接必须是直链（以.mp3结尾）\n2. 链接必须支持跨域访问（CORS）\n3. 链接是否可以直接在浏览器中打开\n4. 可以尝试使用Catbox.moe重新托管文件');
                     musicUrl = '';
                     localStorage.removeItem('musicUrl');
                     // 移除URL参数
                     const newUrl = new URL(window.location.href);
                     newUrl.searchParams.delete('music');
                     window.history.replaceState({}, '', newUrl.toString());
+                } else {
+                    // 自动加载失败时在控制台输出详细信息
+                    console.warn('自动加载音乐失败，用户可点击音乐按钮手动播放');
+                    console.warn('音乐URL:', musicUrl);
                 }
             }, { once: true });
         }
